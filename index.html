@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sales Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Chart.js for charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- PapaParse for reading CSV -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+<style>
+    body { font-family: Arial; margin: 0; padding: 0; background:#f3f3f3;}
+    h2 { text-align:center; background:#007bff; color:white; padding:15px;}
+    .container{ padding:20px;}
+    select { padding:6px; margin:5px;}
+    table { border-collapse: collapse; width:100%; background:white;}
+    th, td { border:1px solid #ccc; padding:6px; font-size:13px;}
+    th { background:#007bff; color:white; }
+    canvas { background:white; margin-top:20px; padding:10px; border-radius:5px;}
+</style>
+</head>
+
+<body>
+<h2>📊 Sales MIS Dashboard</h2>
+
+<div class="container">
+
+    <label><b>Filter Column:</b></label>
+    <select id="colSelect"></select>
+
+    <label><b>Value:</b></label>
+    <select id="valSelect"></select>
+
+    <canvas id="barChart"></canvas>
+    <canvas id="pieChart"></canvas>
+
+    <h3>🗂 Data Table</h3>
+    <table id="dataTable"></table>
+
+</div>
+
+<script>
+// CSV File to Load
+const csvFile = "SALESMIS.csv";
+
+let rawData = [];
+let numericCol = "Total_Revenue"; // default numeric column
+
+// Load CSV from repository
+Papa.parse(csvFile, {
+    download: true,
+    header: true,
+    dynamicTyping: true,
+    complete: function(res) {
+        rawData = res.data.filter(row => Object.values(row).some(v => v !== "" && v != null));
+        detectNumericColumn();
+        loadFilters();
+        updateDashboard();
+    }
+});
+
+// Detect numeric column for charts
+function detectNumericColumn() {
+    const sample = rawData[0];
+    for (let key in sample) {
+        if (!isNaN(sample[key]) && sample[key] !== "" && sample[key] !== null) {
+            numericCol = key; break;
+        }
+    }
+}
+
+// Populate filter dropdowns
+function loadFilters() {
+    const columns = Object.keys(rawData[0]);
+    const colSelect = document.getElementById("colSelect");
+    colSelect.innerHTML = columns.map(c => `<option value="${c}">${c}</option>`).join("");
+    colSelect.addEventListener("change", populateValues);
+    populateValues();
+}
+
+// Populate values based on selected column
+function populateValues() {
+    const col = document.getElementById("colSelect").value;
+    const values = [...new Set(rawData.map(x => x[col]).filter(x => x !== ""))];
+    const valSelect = document.getElementById("valSelect");
+    valSelect.innerHTML = values.map(v => `<option value="${v}">${v}</option>`).join("");
+    valSelect.addEventListener("change", updateDashboard);
+    updateDashboard();
+}
+
+// Filter & Update Dashboard
+function updateDashboard() {
+    const col = document.getElementById("colSelect").value;
+    const val = document.getElementById("valSelect").value;
+    const data = rawData.filter(row => row[col] == val);
+
+    renderTable(data);
+    renderCharts(data);
+}
+
+// Render HTML Data Table
+function renderTable(data) {
+    const table = document.getElementById("dataTable");
+    if (data.length === 0) { table.innerHTML = "<tr><td>No Data</td></tr>"; return; }
+    const headers = Object.keys(data[0]);
+    table.innerHTML = `
+        <tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr>
+        ${data.map(row => `<tr>${headers.map(h => `<td>${row[h]}</td>`).join("")}</tr>`).join("")}
+    `;
+}
+
+// Draw Charts
+let barChart, pieChart;
+
+function renderCharts(data) {
+    const labels = data.map(x => x.Party_Group || x.Branch || "Item");
+    const values = data.map(x => +x[numericCol]);
+
+    if (barChart) barChart.destroy();
+    if (pieChart) pieChart.destroy();
+
+    barChart = new Chart(document.getElementById("barChart"), {
+        type: "bar",
+        data: { labels: labels, datasets: [{ label: numericCol, data: values }] }
+    });
+
+    pieChart = new Chart(document.getElementById("pieChart"), {
+        type: "pie",
+        data: { labels: labels, datasets: [{ data: values }] }
+    });
+}
+</script>
+
+</body>
+</html>
