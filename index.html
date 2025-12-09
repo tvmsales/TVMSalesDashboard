@@ -263,7 +263,7 @@
 
         .chart-container {
             position: relative;
-            height: 350px;
+            height: 300px;
         }
 
         footer {
@@ -857,7 +857,9 @@
                     datasets: [{
                         label: 'Revenue',
                         data: sorted.map(([, revenue]) => revenue),
-                        backgroundColor: '#ec4899'
+                        backgroundColor: '#ec4899',
+                        barThickness: 40,
+                        maxBarThickness: 50
                     }]
                 },
                 options: {
@@ -869,6 +871,11 @@
                             callbacks: {
                                 label: (context) => formatCurrency(context.parsed.y)
                             }
+                        }
+                    },
+                    layout: {
+                        padding: {
+                            bottom: 10
                         }
                     },
                     scales: {
@@ -886,7 +893,8 @@
                                 maxRotation: 0,
                                 minRotation: 0,
                                 autoSkip: false,
-                                font: { size: 11 }
+                                font: { size: 10 },
+                                padding: 5
                             },
                             grid: { display: false }
                         }
