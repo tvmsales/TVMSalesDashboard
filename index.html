@@ -747,10 +747,8 @@
 
         // Close dropdown when clicking outside
         document.addEventListener('click', function(event) {
-            const monthContainer = document.querySelector('.multi-select-container');
-            const groupContainer = document.getElementById('groupDisplay')?.parentElement;
-            
-            // Close month dropdown
+            // Check if click is outside month dropdown
+            const monthContainer = document.getElementById('monthDisplay')?.parentElement;
             if (monthContainer && !monthContainer.contains(event.target)) {
                 const dropdown = document.getElementById('monthDropdown');
                 const display = document.getElementById('monthDisplay');
@@ -761,7 +759,8 @@
                 if (arrow) arrow.classList.remove('open');
             }
             
-            // Close group dropdown
+            // Check if click is outside group dropdown
+            const groupContainer = document.getElementById('groupDisplay')?.parentElement;
             if (groupContainer && !groupContainer.contains(event.target)) {
                 const dropdown = document.getElementById('groupDropdown');
                 const display = document.getElementById('groupDisplay');
@@ -1070,4 +1069,3 @@
     </script>
 </body>
 </html>
-
