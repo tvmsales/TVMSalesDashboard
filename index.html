@@ -1147,7 +1147,8 @@
                     datasets: [{
                         label: 'Revenue',
                         data: sorted.map(([, revenue]) => revenue),
-                        backgroundColor: '#ec4899'
+                        backgroundColor: '#ec4899',
+                        barPercentage: 0.7
                     }]
                 },
                 options: {
@@ -1155,7 +1156,7 @@
                     maintainAspectRatio: false,
                     layout: {
                         padding: {
-                            bottom: 20
+                            bottom: 10
                         }
                     },
                     plugins: {
@@ -1177,14 +1178,19 @@
                             grid: { color: '#334155' }
                         },
                         x: {
+                            offset: false,
                             ticks: { 
                                 color: '#94a3b8',
                                 maxRotation: 0,
                                 minRotation: 0,
                                 autoSkip: false,
-                                font: { size: 10 }
+                                font: { size: 10 },
+                                align: 'center'
                             },
-                            grid: { display: false }
+                            grid: { 
+                                display: false,
+                                offset: false
+                            }
                         }
                     }
                 }
