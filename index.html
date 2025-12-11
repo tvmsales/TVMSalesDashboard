@@ -893,6 +893,18 @@
                 if (display) display.classList.remove('open');
                 if (arrow) arrow.classList.remove('open');
             }
+
+            // Check if click is outside party dropdown
+            const partyContainer = document.getElementById('partyDisplay')?.parentElement;
+            if (partyContainer && !partyContainer.contains(event.target)) {
+                const dropdown = document.getElementById('partyDropdown');
+                const display = document.getElementById('partyDisplay');
+                const arrow = document.getElementById('partyArrow');
+                
+                if (dropdown) dropdown.classList.remove('open');
+                if (display) display.classList.remove('open');
+                if (arrow) arrow.classList.remove('open');
+            }
         });
 
         function updateDashboard() {
@@ -1136,8 +1148,8 @@
                         label: 'Revenue',
                         data: sorted.map(([, revenue]) => revenue),
                         backgroundColor: '#ec4899',
-                        categoryPercentage: 0.7,
-                        barPercentage: 0.8
+                        categoryPercentage: 0.8,
+                        barPercentage: 0.9
                     }]
                 },
                 options: {
@@ -1167,10 +1179,10 @@
                                 maxRotation: 0,
                                 minRotation: 0,
                                 autoSkip: false,
-                                font: { size: 9 }
+                                font: { size: 9 },
+                                padding: 5
                             },
-                            grid: { display: false },
-                            offset: true
+                            grid: { display: false }
                         }
                     }
                 }
