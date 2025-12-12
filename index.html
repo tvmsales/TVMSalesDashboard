@@ -587,13 +587,19 @@
         }
 
         function populateFilters() {
+            // Filter out Subtotal and Grand Total from branches (no sorting for Branch)
             const branches = ['All', ...new Set(rawData
                 .map(d => d.Branch)
                 .filter(b => b && !b.includes('SUBTOTAL') && !b.includes('GRAND TOTAL'))
             )];
             
+            // No sorting for Customer Type
             const customerTypes = ['All', ...new Set(rawData.map(d => d.Customer_Type).filter(Boolean))];
+            
+            // Group Description - sorted alphabetically
             const groupDescriptions = [...new Set(rawData.map(d => d.Group_Description).filter(Boolean))].sort();
+
+            // Party Names - sorted alphabetically
             const partyNames = [...new Set(rawData.map(d => d.Party_name).filter(Boolean))].sort();
 
             populateSelect('branchFilter', branches);
@@ -788,6 +794,7 @@
             const selectedParties = getSelectedParties();
 
             return rawData.filter(row => {
+                // Filter out rows with SUBTOTAL or GRAND TOTAL in Branch
                 if (row.Branch && (row.Branch.includes('SUBTOTAL') || row.Branch.includes('GRAND TOTAL'))) {
                     return false;
                 }
@@ -795,10 +802,12 @@
                 if (branch !== 'All' && row.Branch !== branch) return false;
                 if (customerType !== 'All' && row.Customer_Type !== customerType) return false;
                 
+                // Filter by selected groups
                 if (selectedGroups.length > 0 && !selectedGroups.includes(row.Group_Description)) {
                     return false;
                 }
 
+                // Filter by selected parties
                 if (selectedParties.length > 0 && !selectedParties.includes(row.Party_name)) {
                     return false;
                 }
@@ -824,4 +833,442 @@
 
         function toggleAllMonths() {
             const selectAll = document.getElementById('selectAllMonths');
-            const months = ['Apr-25', 'May-25', 'Jun-25', 'Jul-25', 'Aug-25', 'Sep-25',
+            const months = ['Apr-25', 'May-25', 'Jun-25', 'Jul-25', 'Aug-25', 'Sep-25', 'Oct-25', 'Nov-25'];
+            
+            months.forEach(month => {
+                document.getElementById(`month-${month}`).checked = selectAll.checked;
+            });
+            
+            updateMonthDisplayText();
+            applyFilters();
+        }
+
+        function updateMonthSelection() {
+            const months = ['Apr-25', 'May-25', 'Jun-25', 'Jul-25', 'Aug-25', 'Sep-25', 'Oct-25', 'Nov-25'];
+            const allChecked = months.every(month => document.getElementById(`month-${month}`).checked);
+            
+            document.getElementById('selectAllMonths').checked = allChecked;
+            updateMonthDisplayText();
+            applyFilters();
+        }
+
+        function updateMonthDisplayText() {
+            const selectedMonths = getSelectedMonths();
+            const displayText = document.getElementById('monthDisplayText');
+            
+            if (selectedMonths.length === 0) {
+                displayText.textContent = 'No Months Selected';
+                displayText.style.color = '#ef4444';
+            } else if (selectedMonths.length === 8) {
+                displayText.textContent = 'All Months Selected (8)';
+                displayText.style.color = '#e2e8f0';
+            } else {
+                displayText.textContent = `${selectedMonths.length} Month${selectedMonths.length > 1 ? 's' : ''} Selected`;
+                displayText.style.color = '#3b82f6';
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            // Check if click is outside month dropdown
+            const monthContainer = document.getElementById('monthDisplay')?.parentElement;
+            if (monthContainer && !monthContainer.contains(event.target)) {
+                const dropdown = document.getElementById('monthDropdown');
+                const display = document.getElementById('monthDisplay');
+                const arrow = document.getElementById('monthArrow');
+                
+                if (dropdown) dropdown.classList.remove('open');
+                if (display) display.classList.remove('open');
+                if (arrow) arrow.classList.remove('open');
+            }
+            
+            // Check if click is outside group dropdown
+            const groupContainer = document.getElementById('groupDisplay')?.parentElement;
+            if (groupContainer && !groupContainer.contains(event.target)) {
+                const dropdown = document.getElementById('groupDropdown');
+                const display = document.getElementById('groupDisplay');
+                const arrow = document.getElementById('groupArrow');
+                
+                if (dropdown) dropdown.classList.remove('open');
+                if (display) display.classList.remove('open');
+                if (arrow) arrow.classList.remove('open');
+            }
+
+            // Check if click is outside party dropdown
+            const partyContainer = document.getElementById('partyDisplay')?.parentElement;
+            if (partyContainer && !partyContainer.contains(event.target)) {
+                const dropdown = document.getElementById('partyDropdown');
+                const display = document.getElementById('partyDisplay');
+                const arrow = document.getElementById('partyArrow');
+                
+                if (dropdown) dropdown.classList.remove('open');
+                if (display) display.classList.remove('open');
+                if (arrow) arrow.classList.remove('open');
+            }
+        });
+
+        function updateDashboard() {
+            const data = getFilteredData();
+            updateKPIs(data);
+            updateCharts(data);
+        }
+
+        function updateKPIs(data) {
+            const selectedMonths = getSelectedMonths();
+            
+            // Calculate total revenue only from selected months
+            const totalRevenue = data.reduce((sum, row) => {
+                const monthRevenue = selectedMonths.reduce((monthSum, month) => {
+                    const val = parseFloat(String(row[month]).replace(/,/g, ''));
+                    return monthSum + (isNaN(val) ? 0 : val);
+                }, 0);
+                return sum + monthRevenue;
+            }, 0);
+            
+            const uniqueCustomers = new Set(data.map(d => d.Party_no).filter(Boolean)).size;
+            const uniqueBranches = new Set(data.map(d => d.Branch).filter(Boolean)).size;
+            const avgRevenue = uniqueCustomers > 0 ? totalRevenue / uniqueCustomers : 0;
+
+            document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenue);
+            document.getElementById('totalCustomers').textContent = formatNumber(uniqueCustomers);
+            document.getElementById('totalBranches').textContent = formatNumber(uniqueBranches);
+            document.getElementById('avgRevenue').textContent = formatCurrency(avgRevenue);
+        }
+
+        function updateCharts(data) {
+            updateRevenueChart(data);
+            updateCustomersChart(data);
+            updateBranchChart(data);
+            updateCustomerTypeChart(data);
+            updatePartyMonthChart(data);
+        }
+
+        function updateRevenueChart(data) {
+            const selectedMonths = getSelectedMonths();
+            const revenues = selectedMonths.map(month => {
+                return data.reduce((sum, row) => {
+                    const val = parseFloat(String(row[month]).replace(/,/g, ''));
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+            });
+
+            if (charts.revenue) charts.revenue.destroy();
+
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            charts.revenue = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: selectedMonths,
+                    datasets: [{
+                        label: 'Revenue',
+                        data: revenues,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => formatCurrency(context.parsed.y)
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#94a3b8',
+                                callback: (value) => '₹' + (value / 100000).toFixed(1) + 'L'
+                            },
+                            grid: { color: '#334155' }
+                        },
+                        x: {
+                            ticks: { color: '#94a3b8' },
+                            grid: { color: '#334155' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCustomersChart(data) {
+            const selectedMonths = getSelectedMonths();
+            const customerRevenue = {};
+            
+            data.forEach(row => {
+                const name = row.Party_name;
+                if (name) {
+                    if (!customerRevenue[name]) customerRevenue[name] = 0;
+                    // Sum revenue only from selected months
+                    selectedMonths.forEach(month => {
+                        const val = parseFloat(String(row[month]).replace(/,/g, ''));
+                        customerRevenue[name] += isNaN(val) ? 0 : val;
+                    });
+                }
+            });
+
+            const sorted = Object.entries(customerRevenue)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            if (charts.customers) charts.customers.destroy();
+
+            const ctx = document.getElementById('customersChart').getContext('2d');
+            charts.customers = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sorted.map(([name]) => name),
+                    datasets: [{
+                        label: 'Revenue',
+                        data: sorted.map(([, revenue]) => revenue),
+                        backgroundColor: '#8b5cf6'
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (context) => context[0].label,
+                                label: (context) => formatCurrency(context.parsed.x)
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#94a3b8',
+                                font: { size: 9 },
+                                callback: (value) => '₹' + (value / 100000).toFixed(1) + 'L'
+                            },
+                            grid: { color: '#334155' }
+                        },
+                        y: {
+                            ticks: { 
+                                color: '#94a3b8', 
+                                font: { size: 9 },
+                                autoSkip: false,
+                                crossAlign: 'far'
+                            },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateBranchChart(data) {
+            const selectedMonths = getSelectedMonths();
+            const branchRevenue = {};
+            
+            data.forEach(row => {
+                const branch = row.Branch || 'Unknown';
+                if (!branchRevenue[branch]) branchRevenue[branch] = 0;
+                // Sum revenue only from selected months
+                selectedMonths.forEach(month => {
+                    const val = parseFloat(String(row[month]).replace(/,/g, ''));
+                    branchRevenue[branch] += isNaN(val) ? 0 : val;
+                });
+            });
+
+            const sorted = Object.entries(branchRevenue).sort((a, b) => b[1] - a[1]);
+
+            if (charts.branch) charts.branch.destroy();
+
+            const ctx = document.getElementById('branchChart').getContext('2d');
+            const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#f43f5e', '#14b8a6'];
+            
+            charts.branch = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: sorted.map(([name]) => name),
+                    datasets: [{
+                        data: sorted.map(([, revenue]) => revenue),
+                        backgroundColor: colors
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: { color: '#94a3b8', padding: 15, font: { size: 11 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const label = context.label || '';
+                                    const value = formatCurrency(context.parsed);
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCustomerTypeChart(data) {
+            const selectedMonths = getSelectedMonths();
+            const typeRevenue = {};
+            
+            data.forEach(row => {
+                const type = row.Customer_Type || 'Unknown';
+                if (!typeRevenue[type]) typeRevenue[type] = 0;
+                selectedMonths.forEach(month => {
+                    const val = parseFloat(String(row[month]).replace(/,/g, ''));
+                    typeRevenue[type] += isNaN(val) ? 0 : val;
+                });
+            });
+
+            const sorted = Object.entries(typeRevenue).sort((a, b) => b[1] - a[1]);
+
+            if (charts.customerType) charts.customerType.destroy();
+
+            const ctx = document.getElementById('customerTypeChart').getContext('2d');
+            charts.customerType = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sorted.map(([name]) => name),
+                    datasets: [{
+                        label: 'Revenue',
+                        data: sorted.map(([, revenue]) => revenue),
+                        backgroundColor: '#ec4899'
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => formatCurrency(context.parsed.x)
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#94a3b8',
+                                font: { size: 10 },
+                                callback: (value) => '₹' + (value / 100000).toFixed(1) + 'L'
+                            },
+                            grid: { color: '#334155' }
+                        },
+                        y: {
+                            ticks: { 
+                                color: '#94a3b8',
+                                font: { size: 10 },
+                                mirror: false,
+                                padding: 5
+                            },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updatePartyMonthChart(data) {
+            const selectedMonths = getSelectedMonths();
+            const selectedParties = getSelectedParties();
+            
+            // Aggregate revenue by month for selected parties
+            const monthRevenue = {};
+            selectedMonths.forEach(month => {
+                monthRevenue[month] = 0;
+            });
+
+            data.forEach(row => {
+                if (selectedParties.includes(row.Party_name)) {
+                    selectedMonths.forEach(month => {
+                        const val = parseFloat(String(row[month]).replace(/,/g, ''));
+                        monthRevenue[month] += isNaN(val) ? 0 : val;
+                    });
+                }
+            });
+
+            const chartData = selectedMonths.map(month => monthRevenue[month]);
+
+            if (charts.partyMonth) charts.partyMonth.destroy();
+
+            const ctx = document.getElementById('partyMonthChart').getContext('2d');
+            charts.partyMonth = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: selectedMonths,
+                    datasets: [{
+                        label: 'Revenue',
+                        data: chartData,
+                        backgroundColor: '#10b981'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => formatCurrency(context.parsed.y)
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#94a3b8',
+                                font: { size: 10 },
+                                callback: (value) => '₹' + (value / 100000).toFixed(1) + 'L'
+                            },
+                            grid: { color: '#334155' }
+                        },
+                        x: {
+                            ticks: { 
+                                color: '#94a3b8',
+                                font: { size: 10 }
+                            },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                maximumFractionDigits: 0
+            }).format(value);
+        }
+
+        function formatNumber(value) {
+            return new Intl.NumberFormat('en-IN').format(value);
+        }
+
+        window.addEventListener('load', loadData);
+    </script>
+</body>
+</html>
+
+
+
