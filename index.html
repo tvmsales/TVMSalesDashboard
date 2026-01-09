@@ -7,99 +7,156 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
-        /* CSS directly from IndexHTML_Modification060126.docx */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #e2e8f0; min-height: 100vh; padding: 20px;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 20px;
         }
         .container { max-width: 1400px; margin: 0 auto; }
         header { margin-bottom: 30px; }
         h1 { font-size: 2.5rem; font-weight: 700; color: #fff; margin-bottom: 10px; }
-        .subtitle { color: #94a3b8; font-size: 1.1rem; }
+        .subtitle { color: #94a3b8; font-size: 1.1rem; margin-bottom: 5px; }
         .designer { color: #3b82f6; font-size: 1rem; font-weight: 700; margin-top: 5px; }
-        
-        /* Dashboard Layout */
+
         .filters {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px; margin-bottom: 30px; background: #1e293b; padding: 25px; border-radius: 12px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            background: #1e293b;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         }
         .filter-group { display: flex; flex-direction: column; }
-        .filter-group label { font-size: 0.9rem; color: #cbd5e1; margin-bottom: 8px; }
-        select, .multi-select-display {
-            padding: 10px; background: #0f172a; border: 2px solid #334155;
-            border-radius: 8px; color: #e2e8f0; cursor: pointer;
+        .filter-group label { font-size: 0.9rem; color: #cbd5e1; margin-bottom: 8px; font-weight: 500; }
+        .filter-group select {
+            padding: 10px 15px; background: #0f172a; border: 2px solid #334155;
+            border-radius: 8px; color: #e2e8f0; font-size: 1rem; cursor: pointer; transition: all 0.3s;
         }
-        
-        /* KPI Cards */
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .kpi-card { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 25px; border-radius: 12px; }
+        .filter-group select:hover { border-color: #3b82f6; }
+
+        .multi-select-container { position: relative; }
+        .multi-select-display {
+            padding: 10px 15px; background: #0f172a; border: 2px solid #334155;
+            border-radius: 8px; color: #e2e8f0; font-size: 1rem; cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .multi-select-dropdown {
+            position: absolute; top: 100%; left: 0; right: 0; background: #0f172a;
+            border: 2px solid #3b82f6; border-top: none; border-radius: 0 0 8px 8px;
+            max-height: 300px; overflow-y: auto; z-index: 1000; display: none;
+        }
+        .multi-select-dropdown.open { display: block; }
+        .multi-select-option { padding: 10px 15px; cursor: pointer; display: flex; align-items: center; }
+        .multi-select-option:hover { background: #1e293b; }
+        .multi-select-option input[type="checkbox"] { margin-right: 10px; width: 18px; height: 18px; }
+
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .kpi-card { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); position: relative; overflow: hidden; }
         .kpi-card.purple { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
         .kpi-card.pink { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); }
-        .kpi-value { font-size: 2rem; font-weight: 700; }
+        .kpi-card.orange { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .kpi-label { font-size: 0.9rem; color: rgba(255, 255, 255, 0.9); margin-bottom: 10px; }
+        .kpi-value { font-size: 2rem; font-weight: 700; color: #fff; }
 
-        /* Tables and Charts */
-        .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px; }
-        .chart-card { background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
-        .quarter-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        .quarter-table th, .quarter-table td { padding: 12px; border: 1px solid #334155; text-align: center; }
-        .growth-badge { padding: 4px 8px; border-radius: 12px; font-weight: bold; }
-        .growth-positive { background: rgba(16, 185, 129, 0.2); color: #10b981; }
-        .growth-negative { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .chart-card { background: #1e293b; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); }
+        .chart-card.full-width { grid-column: 1 / -1; }
+        .chart-title { font-size: 1.2rem; font-weight: 600; color: #fff; margin-bottom: 15px; }
+        .chart-container { position: relative; height: 240px; }
+        .chart-container.tall { height: 350px; }
 
-        /* Chrome Fix: Manual Load UI */
-        #manualLoad { background: #1e293b; padding: 40px; border-radius: 12px; text-align: center; display: none; }
-        .btn-primary { background: #3b82f6; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; }
+        .quarter-table { width: 100%; margin-top: 20px; border-collapse: collapse; background: #0f172a; border-radius: 8px; overflow: hidden; }
+        .quarter-table th { padding: 14px 12px; background: #334155; color: #f1f5f9; font-weight: 600; text-align: center; }
+        .quarter-table td { padding: 14px 12px; text-align: center; color: #cbd5e1; border-bottom: 1px solid #334155; }
+        .quarter-table td:first-child { text-align: left; font-weight: 600; color: #e2e8f0; }
+        .growth-badge { padding: 5px 10px; border-radius: 14px; font-size: 0.8rem; font-weight: 700; }
+        .growth-positive { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+        .growth-negative { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+        .loading { text-align: center; padding: 50px; font-size: 1.2rem; color: #94a3b8; }
+        @media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>📊 TVM-SALES Dashboard</h1>
+            <h1> 📊  TVM-SALES Dashboard</h1>
             <p class="subtitle">Sales Analytics and Insights</p>
             <p class="designer">Designed by Prasad K</p>
         </header>
 
-        <div id="manualLoad">
-            <h2>Chrome Security Check</h2>
-            <p style="margin: 15px 0;">To view data on Chrome, please select your <b>SALESMIS.csv</b> file below:</p>
-            <input type="file" id="fileInput" accept=".csv" style="margin-bottom: 20px;"><br>
-            <button class="btn-primary" onclick="handleManualFile()">Launch Dashboard</button>
-        </div>
-
-        <div id="dashboard">
+        <div id="loading" class="loading">Loading your sales data...</div>
+        
+        <div id="dashboard" style="display: none;">
             <div class="filters">
                 <div class="filter-group">
-                    <label>Branch</label>
-                    <select id="branchFilter" onchange="updateDashboard()"><option value="All">All Branches</option></select>
+                    <label for="branchFilter">Branch</label>
+                    <select id="branchFilter" onchange="applyFilters()"><option value="All">All Branches</option></select>
                 </div>
                 <div class="filter-group">
-                    <label>Customer Type</label>
-                    <select id="typeFilter" onchange="updateDashboard()"><option value="All">All Types</option></select>
+                    <label for="customerTypeFilter">Customer Type</label>
+                    <select id="customerTypeFilter" onchange="applyFilters()"><option value="All">All Types</option></select>
+                </div>
+                <div class="filter-group">
+                    <label>Group Description</label>
+                    <div class="multi-select-container">
+                        <div class="multi-select-display" id="groupDisplay" onclick="toggleGroupDropdown()">
+                            <span id="groupDisplayText">All Groups</span>
+                        </div>
+                        <div id="groupDropdown" class="multi-select-dropdown">
+                            <div class="multi-select-option select-all">
+                                <input type="checkbox" id="selectAllGroups" checked onchange="toggleAllGroups()">
+                                <label for="selectAllGroups">Select All</label>
+                            </div>
+                            <div id="groupOptions"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label>Select Months</label>
+                    <div class="multi-select-container">
+                        <div class="multi-select-display" id="monthDisplay" onclick="toggleMonthDropdown()">
+                            <span id="monthDisplayText">All Months</span>
+                        </div>
+                        <div id="monthDropdown" class="multi-select-dropdown">
+                            <div class="multi-select-option select-all">
+                                <input type="checkbox" id="selectAllMonths" checked onchange="toggleAllMonths()">
+                                <label for="selectAllMonths">Select All</label>
+                            </div>
+                            <div id="monthOptions"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div class="kpi-grid">
-                <div class="kpi-card"><div class="kpi-label">Total Revenue</div><div id="totalRev" class="kpi-value">₹0</div></div>
-                <div class="kpi-card purple"><div class="kpi-label">Total Customers</div><div id="totalCust" class="kpi-value">0</div></div>
-                <div class="kpi-card pink"><div class="kpi-label">Avg Revenue/Customer</div><div id="avgRev" class="kpi-value">₹0</div></div>
+                <div class="kpi-card"><div class="kpi-label">Total Revenue</div><div class="kpi-value" id="totalRevenue">₹0</div></div>
+                <div class="kpi-card purple"><div class="kpi-label">Total Customers</div><div class="kpi-value" id="totalCustomers">0</div></div>
+                <div class="kpi-card pink"><div class="kpi-label">Total Branches</div><div class="kpi-value" id="totalBranches">0</div></div>
+                <div class="kpi-card orange"><div class="kpi-label">Avg Revenue/Customer</div><div class="kpi-value" id="avgRevenue">₹0</div></div>
             </div>
 
-            <div class="chart-card">
-                <h3>Monthly Revenue Trend</h3>
-                <canvas id="revChart" height="100"></canvas>
+            <div class="charts-grid">
+                <div class="chart-card"><div class="chart-title">Revenue Trend</div><div class="chart-container"><canvas id="revenueChart"></canvas></div></div>
+                <div class="chart-card"><div class="chart-title">Top 10 Customers</div><div class="chart-container"><canvas id="customersChart"></canvas></div></div>
+                <div class="chart-card"><div class="chart-title">Branch Performance</div><div class="chart-container"><canvas id="branchChart"></canvas></div></div>
+                <div class="chart-card"><div class="chart-title">Quarterly Performance</div><div class="chart-container"><canvas id="quarterChart"></canvas></div></div>
             </div>
 
-            <div class="chart-card">
-                <h3>Quarterly Performance (Lakhs)</h3>
+            <div class="chart-card full-width">
+                <div class="chart-title">Branch Quarterly Growth (Lakhs)</div>
                 <table class="quarter-table">
                     <thead>
                         <tr>
-                            <th>Branch</th><th>Q1 (Apr-Jun)</th><th>Q2 (Jul-Sep)</th><th>Growth %</th>
+                            <th>Branch</th><th>Q1 (Apr-Jun)</th><th>Q2 (Jul-Sep)</th><th>Q3 (Oct-Dec)</th><th>Q4 (Jan-Mar)</th><th>Q1→Q2 %</th><th>Q2→Q3 %</th>
                         </tr>
                     </thead>
-                    <tbody id="tableBody"></tbody>
+                    <tbody id="comparisonTableBody"></tbody>
                 </table>
             </div>
         </div>
@@ -107,111 +164,138 @@
 
     <script>
         let rawData = [];
-        let chart = null;
-        const MONTHS = ['Apr-25', 'May-25', 'Jun-25', 'Jul-25', 'Aug-25', 'Sep-25', 'Oct-25', 'Nov-25'];
+        let charts = {};
+        const ALL_MONTHS = ['Apr-25', 'May-25', 'Jun-25', 'Jul-25', 'Aug-25', 'Sep-25', 'Oct-25', 'Nov-25', 'Dec-25', 'Jan-26', 'Feb-26', 'Mar-26'];
 
-        // Try to auto-load (Works in Firefox or Local Server)
-        async function init() {
+        async function loadData() {
             try {
-                const response = await fetch('SALESMIS.csv');
-                if (!response.ok) throw new Error();
-                const text = await response.text();
-                processCSV(text);
-            } catch (e) {
-                // If Chrome blocks fetch, show manual load button
-                document.getElementById('manualLoad').style.display = 'block';
-                document.getElementById('dashboard').style.opacity = '0.3';
-            }
+                const response = await fetch('SALESMIS.csv'); [cite: 141]
+                if (!response.ok) throw new Error('File not found');
+                const csvText = await response.text();
+                Papa.parse(csvText, { [cite: 142]
+                    header: true, skipEmptyLines: true,
+                    complete: function(results) {
+                        rawData = results.data.filter(r => r.Branch && !r.Branch.includes('SUBTOTAL') && !r.Branch.includes('GRAND TOTAL'));
+                        initDashboard();
+                    }
+                });
+            } catch (e) { console.error(e); }
         }
 
-        function handleManualFile() {
-            const file = document.getElementById('fileInput').files[0];
-            if (!file) return alert("Please select SALESMIS.csv");
-            const reader = new FileReader();
-            reader.onload = (e) => processCSV(e.target.result);
-            reader.readAsText(file);
+        function initDashboard() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            
+            const branches = [...new Set(rawData.map(r => r.Branch))].sort();
+            const types = [...new Set(rawData.map(r => r.Customer_Type))].sort();
+            const groups = [...new Set(rawData.map(r => r.Group_Description).filter(Boolean))].sort();
+
+            populateSelect('branchFilter', branches);
+            populateSelect('customerTypeFilter', types);
+            populateMultiSelect('groupOptions', groups, 'group');
+            populateMultiSelect('monthOptions', ALL_MONTHS, 'month');
+
+            updateDashboard();
         }
 
-        function processCSV(csvText) {
-            Papa.parse(csvText, {
-                header: true, skipEmptyLines: true,
-                complete: function(results) {
-                    rawData = results.data.filter(r => r.Branch && !r.Branch.includes('TOTAL'));
-                    document.getElementById('manualLoad').style.display = 'none';
-                    document.getElementById('dashboard').style.opacity = '1';
-                    setupFilters();
-                    updateDashboard();
-                }
+        function populateSelect(id, items) {
+            const select = document.getElementById(id);
+            items.forEach(item => select.add(new Option(item, item)));
+        }
+
+        function populateMultiSelect(containerId, items, prefix) {
+            const container = document.getElementById(containerId);
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'multi-select-option';
+                div.innerHTML = `<input type="checkbox" id="${prefix}-${item}" value="${item}" checked onchange="updateDashboard()"> <label for="${prefix}-${item}">${item}</label>`;
+                container.appendChild(div);
             });
         }
 
-        function setupFilters() {
-            const branches = [...new Set(rawData.map(r => r.Branch))].sort();
-            const types = [...new Set(rawData.map(r => r.Customer_Type))].sort();
-            const bFilter = document.getElementById('branchFilter');
-            const tFilter = document.getElementById('typeFilter');
-            
-            branches.forEach(b => bFilter.add(new Option(b, b)));
-            types.forEach(t => tFilter.add(new Option(t, t)));
+        function toggleGroupDropdown() { document.getElementById('groupDropdown').classList.toggle('open'); }
+        function toggleMonthDropdown() { document.getElementById('monthDropdown').classList.toggle('open'); }
+        function applyFilters() { updateDashboard(); }
+
+        function getFilteredData() {
+            const branch = document.getElementById('branchFilter').value;
+            const type = document.getElementById('customerTypeFilter').value;
+            const selectedGroups = Array.from(document.querySelectorAll('#groupOptions input:checked')).map(cb => cb.value);
+            return rawData.filter(row => {
+                if (branch !== 'All' && row.Branch !== branch) return false;
+                if (type !== 'All' && row.Customer_Type !== type) return false;
+                if (selectedGroups.length > 0 && !selectedGroups.includes(row.Group_Description)) return false;
+                return true;
+            });
         }
 
         function updateDashboard() {
-            const branch = document.getElementById('branchFilter').value;
-            const type = document.getElementById('typeFilter').value;
+            const data = getFilteredData();
+            const selectedMonths = Array.from(document.querySelectorAll('#monthOptions input:checked')).map(cb => cb.value);
             
-            const filtered = rawData.filter(r => 
-                (branch === 'All' || r.Branch === branch) && 
-                (type === 'All' || r.Customer_Type === type)
-            );
-
-            let total = 0;
-            const monthlySums = MONTHS.map(m => {
-                const sum = filtered.reduce((acc, row) => acc + (parseFloat(String(row[m] || '0').replace(/,/g, '')) || 0), 0);
-                total += sum;
-                return sum;
-            });
-
-            document.getElementById('totalRev').innerText = '₹' + (total / 10000000).toFixed(2) + ' Cr';
-            document.getElementById('totalCust').innerText = new Set(filtered.map(r => r.Party_no)).size;
-            
-            renderChart(monthlySums);
-            renderTable(filtered);
+            updateKPIs(data, selectedMonths); [cite: 247]
+            renderCharts(data, selectedMonths); [cite: 250]
+            renderTable(data); [cite: 330]
         }
 
-        function renderChart(data) {
-            const ctx = document.getElementById('revChart').getContext('2d');
-            if (chart) chart.destroy();
-            chart = new Chart(ctx, {
+        function updateKPIs(data, months) {
+            let total = 0;
+            data.forEach(row => {
+                months.forEach(m => total += parseFloat(String(row[m] || '0').replace(/,/g, '')) || 0);
+            });
+            document.getElementById('totalRevenue').textContent = formatCurrency(total); [cite: 249]
+            document.getElementById('totalCustomers').textContent = new Set(data.map(d => d.Party_no)).size; [cite: 248]
+            document.getElementById('totalBranches').textContent = new Set(data.map(d => d.Branch)).size;
+            const avg = total / (new Set(data.map(d => d.Party_no)).size || 1);
+            document.getElementById('avgRevenue').textContent = formatCurrency(avg);
+        }
+
+        function renderCharts(data, months) {
+            const revenues = months.map(m => data.reduce((s, r) => s + (parseFloat(String(r[m] || '0').replace(/,/g, '')) || 0), 0));
+            if (charts.rev) charts.rev.destroy();
+            charts.rev = new Chart(document.getElementById('revenueChart'), { [cite: 252]
                 type: 'line',
-                data: {
-                    labels: MONTHS,
-                    datasets: [{ label: 'Revenue', data: data, borderColor: '#3b82f6', tension: 0.3, fill: true, backgroundColor: 'rgba(59,130,246,0.1)' }]
-                },
-                options: { responsive: true }
+                data: { labels: months, datasets: [{ label: 'Revenue', data: revenues, borderColor: '#3b82f6', tension: 0.4 }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            const custMap = {};
+            data.forEach(r => {
+                const total = months.reduce((s, m) => s + (parseFloat(String(r[m] || '0').replace(/,/g, '')) || 0), 0);
+                custMap[r.Party_name] = (custMap[r.Party_name] || 0) + total;
+            });
+            const topCust = Object.entries(custMap).sort((a,b) => b[1]-a[1]).slice(0, 10);
+            if (charts.cust) charts.cust.destroy();
+            charts.cust = new Chart(document.getElementById('customersChart'), { [cite: 268]
+                type: 'bar',
+                data: { labels: topCust.map(c => c[0]), datasets: [{ label: 'Lakhs', data: topCust.map(c => c[1]/100000), backgroundColor: '#ec4899' }] },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false }
             });
         }
 
         function renderTable(data) {
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '';
             const branches = [...new Set(data.map(r => r.Branch))];
-            
-            branches.forEach(b => {
-                const rows = data.filter(r => r.Branch === b);
-                const q1 = rows.reduce((s, r) => s + (parseFloat(String(r['Apr-25']||0).replace(/,/g,'')) + parseFloat(String(r['May-25']||0).replace(/,/g,'')) + parseFloat(String(r['Jun-25']||0).replace(/,/g,''))), 0);
-                const q2 = rows.reduce((s, r) => s + (parseFloat(String(r['Jul-25']||0).replace(/,/g,'')) + parseFloat(String(r['Aug-25']||0).replace(/,/g,'')) + parseFloat(String(r['Sep-25']||0).replace(/,/g,''))), 0);
-                const growth = q1 > 0 ? ((q2 - q1) / q1 * 100).toFixed(1) : 0;
+            const tbody = document.getElementById('comparisonTableBody');
+            tbody.innerHTML = '';
 
-                tbody.innerHTML += `<tr>
-                    <td>${b}</td>
-                    <td>${(q1/100000).toFixed(1)} L</td>
-                    <td>${(q2/100000).toFixed(1)} L</td>
-                    <td><span class="growth-badge ${growth >= 0 ? 'growth-positive' : 'growth-negative'}">${growth}%</span></td>
-                </tr>`;
+            branches.forEach(b => {
+                const bData = data.filter(r => r.Branch === b);
+                const q1 = bData.reduce((s, r) => s + sum(r, ['Apr-25','May-25','Jun-25']), 0) / 100000;
+                const q2 = bData.reduce((s, r) => s + sum(r, ['Jul-25','Aug-25','Sep-25']), 0) / 100000;
+                const q3 = bData.reduce((s, r) => s + sum(r, ['Oct-25','Nov-25','Dec-25']), 0) / 100000;
+                const q4 = bData.reduce((s, r) => s + sum(r, ['Jan-26','Feb-26','Mar-26']), 0) / 100000;
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${b}</td><td>${q1.toFixed(1)}</td><td>${q2.toFixed(1)}</td><td>${q3.toFixed(1)}</td><td>${q4.toFixed(1)}</td>
+                    <td><span class="growth-badge ${q2>=q1?'growth-positive':'growth-negative'}">${((q2-q1)/q1*100||0).toFixed(1)}%</span></td>
+                    <td><span class="growth-badge ${q3>=q2?'growth-positive':'growth-negative'}">${((q3-q2)/q2*100||0).toFixed(1)}%</span></td>`;
+                tbody.appendChild(tr); [cite: 331]
             });
         }
 
-        window.onload = init;
+        function sum(row, months) { return months.reduce((s, m) => s + (parseFloat(String(row[m] || '0').replace(/,/g, '')) || 0), 0); }
+        function formatCurrency(v) { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(v); }
+        window.onload = loadData;
     </script>
 </body>
 </html>
